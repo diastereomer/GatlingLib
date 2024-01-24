@@ -1,40 +1,32 @@
-.gradle
-build/
-gradle/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+# Project
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### Eclipse ###
-.apt_generated
+# Eclipse
 .classpath
-.factorypath
 .project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+.settings/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# Intellij
+.idea/
+*.iml
+*.iws
+*.ipr
+*.eml
+out/
 
-### VS Code ###
-.vscode/
+# Gradle
+.gradle/
+build/
+lib/
 
-### Mac OS ###
+# MacOS
 .DS_Store
+/bin/
+
+configsBackup/
+*.log
+/.pydevproject
+
+# Python Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
