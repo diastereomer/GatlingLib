@@ -9,6 +9,9 @@ public abstract class AbstractUnmodifiableObjectPool<T> {
   protected abstract T unmodifiableClone(T object);
 
   public synchronized T putIfAbsent(T object) {
+    if(object == null){
+      return null;
+    }
     WeakReference<T> value = cache.get(object);
     if (value != null) {
       try {

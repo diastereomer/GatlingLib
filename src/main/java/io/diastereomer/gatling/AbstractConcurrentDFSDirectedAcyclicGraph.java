@@ -2,11 +2,10 @@ package io.diastereomer.gatling;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -18,6 +17,7 @@ import org.apache.commons.collections4.CollectionUtils;
  */
 public abstract class AbstractConcurrentDFSDirectedAcyclicGraph<T extends Runnable> {
   protected int timeout = 60;
+  protected TimeUnit timeUnit = TimeUnit.SECONDS;
   protected abstract Collection<T> getDependents(T node);
   private final Map<T, CompletableFuture<?>> node2CompletableFuture = new ConcurrentHashMap<>();
   private final Collection<T> roots;
@@ -27,16 +27,10 @@ public abstract class AbstractConcurrentDFSDirectedAcyclicGraph<T extends Runnab
   }
 
   public void depthFirstSearch() {
-    roots.forEach(this::runNodeParallel);
-    node2CompletableFuture.forEach((node, future) -> {
-      try {
-        future.get(timeout, TimeUnit.SECONDS);
-      } catch (InterruptedException | ExecutionException | TimeoutException e) {
-        node2CompletableFuture.clear();
-        Thread.currentThread().interrupt();
-      }
-    });
     node2CompletableFuture.clear();
+    roots.forEach(this::runNodeParallel);
+    var futures = node2CompletableFuture.values().toArray(size -> new CompletableFuture<?>[size]);
+    CompletableFuture.allOf(futures).orTimeout(timeout, timeUnit).join();
   }
 
   private void runNodeParallel(T node) {
@@ -44,19 +38,10 @@ public abstract class AbstractConcurrentDFSDirectedAcyclicGraph<T extends Runnab
       Collection<T> dependents = getDependents(node);
       if (CollectionUtils.isNotEmpty(dependents)) {
         dependents.forEach(this::runNodeParallel);
-        dependents.forEach(dependent -> {
-          try {
-            var dependentFuture = node2CompletableFuture.get(dependent);
-            if (dependentFuture == null) {
-              return;
-            }
-            dependentFuture.get(timeout, TimeUnit.SECONDS);
-          } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            Thread.currentThread().interrupt();
-          }
-        });
+        var dependentFutures = dependents.stream().map(node2CompletableFuture::get).filter(Objects::nonNull).toArray(size -> new CompletableFuture<?>[size]);
+        CompletableFuture.allOf(dependentFutures).orTimeout(timeout, timeUnit).join();
       }
       node.run();
-    }));
+    }).orTimeout(timeout, timeUnit));
   }
 }
